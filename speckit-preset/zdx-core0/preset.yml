@@ -1,0 +1,54 @@
+schema_version: "1.0"
+
+preset:
+  id: "zdx-core0"
+  name: "ZDX CORE-0 Embedded Foundation"
+  version: "0.1.0"
+  description: "Zingcore handheld firmware on the ZDX CORE-0 foundation: constitution, hardware-aware spec/plan/tasks sections."
+  author: "Zingcore Dynamics"
+  repository: "https://github.com/zingcore/zdx-core0"
+  license: "Proprietary"
+
+requires:
+  speckit_version: ">=0.1.0"
+
+provides:
+  templates:
+    # Full replacement: the constitution IS the foundation's rule set.
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "ZDX CORE-0 constitution: non-blocking, static memory, layer boundaries, power contracts"
+      replaces: "constitution-template"
+
+    # Appended sections: core Spec Kit structure is kept, hardware sections added.
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-addendum.md"
+      description: "Adds device context, interaction, power and acceptance-on-hardware sections"
+      strategy: "append"
+
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-addendum.md"
+      description: "Adds foundation module mapping, resource and power budgets, board/pin changes"
+      strategy: "append"
+
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-addendum.md"
+      description: "Enforces CORE-0 bring-up ordering, native-test tasks and on-target verification"
+      strategy: "append"
+
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-addendum.md"
+      description: "Adds the CORE-0 firmware quality checklist"
+      strategy: "append"
+
+tags:
+  - "embedded"
+  - "firmware"
+  - "platformio"
+  - "arduino"
+  - "zingcore"

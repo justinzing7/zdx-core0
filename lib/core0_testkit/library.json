@@ -1,0 +1,14 @@
+{
+  "name": "core0-testkit",
+  "version": "0.1.0",
+  "description": "ZDX CORE-0 host test kit: the native port, test_helpers.h and the generic mocks (panel, audio, LED, RTC).",
+  "keywords": ["testing", "unity", "mock"],
+  "authors": [{ "name": "Zingcore Dynamics" }],
+  "license": "Proprietary",
+  "frameworks": "*",
+  "platforms": "native",
+  "dependencies": [{ "name": "core0" }],
+  "build": {
+    "libArchive": false
+  }
+}

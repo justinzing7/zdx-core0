@@ -1,0 +1,13 @@
+{
+  "name": "core0",
+  "version": "0.1.0",
+  "description": "ZDX CORE-0: Zingcore Dynamics firmware foundation for handheld embedded devices.",
+  "keywords": ["framework", "superloop", "ui", "power", "embedded"],
+  "authors": [{ "name": "Zingcore Dynamics" }],
+  "license": "Proprietary",
+  "frameworks": "*",
+  "platforms": "*",
+  "build": {
+    "libArchive": false
+  }
+}
