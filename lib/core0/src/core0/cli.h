@@ -35,6 +35,12 @@ void   print(const char* fmt, ...)
     ;
 void   exec(char* line);   // parse + run (also used by tests)
 
+// Read the next line as a secret (a password): each typed character echoes as '*', the line is
+// handed to `done` (len may be 0) and the buffer is wiped afterwards. It is not parsed as a command.
+// Cancelled after 60 s with no input ("(cancelled)", `done` not called). Busy if one is pending.
+typedef void (*SecretFn)(char* line, uint8_t len);
+Status read_secret(const char* prompt, SecretFn done);
+
 extern const Module kModule;
 
 }  // namespace cli

@@ -56,6 +56,7 @@ char        filter_name[kMsgLen];
 int16_t     index = -1;       // running test
 uint8_t     total = 0;
 uint8_t     passed = 0;
+uint8_t     skipped = 0;       // Skip = not applicable here (nothing fitted / configured): not a failure
 char        current[kMsgLen];  // prompt while running, detail once finished
 ms_t        last_input = 0;
 ms_t        done_at = 0;
@@ -90,6 +91,7 @@ void abort_test(ms_t now) {
 void finish(TestResult r, const char* detail) {
   if (detail) snprintf(current, sizeof(current), "%s", detail);
   if (r == TestResult::Pass) ++passed;
+  if (r == TestResult::Skip) ++skipped;
   Result& out = results[nresults++];
   out.name = tests[index].name;
   out.result = r;
@@ -153,9 +155,15 @@ void release_power(ms_t now) {
 #endif
 }
 
+bool all_ok() { return passed + skipped == total; }
+
 void print_summary() {
-  say("SELFTEST %s %u/%u", passed == total ? "PASS" : "FAIL", static_cast<unsigned>(passed),
-      static_cast<unsigned>(total));
+  if (skipped) {
+    say("SELFTEST %s %u/%u (%u skipped)", all_ok() ? "PASS" : "FAIL", static_cast<unsigned>(passed),
+        static_cast<unsigned>(total), static_cast<unsigned>(skipped));
+  } else {
+    say("SELFTEST %s %u/%u", all_ok() ? "PASS" : "FAIL", static_cast<unsigned>(passed), static_cast<unsigned>(total));
+  }
 }
 
 class FactoryScreen : public Screen {
@@ -247,7 +255,7 @@ class FactoryScreen : public Screen {
       if (tests[index].interactive) g.text(0, y2, "Up/Sel=YES Dn/Bk=NO", Color::White, Align::Left);
     } else if (st == St::Done) {
       char summary[24];
-      snprintf(summary, sizeof(summary), "%s %u/%u", passed == total ? "PASS" : "FAIL", static_cast<unsigned>(passed),
+      snprintf(summary, sizeof(summary), "%s %u/%u", all_ok() ? "PASS" : "FAIL", static_cast<unsigned>(passed),
                static_cast<unsigned>(total));
       g.text(0, y1, summary, Color::White, Align::Left);
       g.text(0, y2, "Back: exit", Color::White, Align::Left);
@@ -302,6 +310,7 @@ Status run_named(const char* only) {
   }
   nresults = 0;
   passed = 0;
+  skipped = 0;
   say("SELFTEST BEGIN %u", static_cast<unsigned>(total));
 #if CORE0_FEAT_POWER
   lock_id = power::lock(PowerState::Active, "selftest");

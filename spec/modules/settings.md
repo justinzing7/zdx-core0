@@ -22,7 +22,8 @@ Header: `settings.h` · Event type: `EventType::Settings` · Flag: `CORE0_FEAT_S
   - Adding a field at the end means bumping the version. The migration copies the old prefix and keeps defaults for the new fields; that is the default generated migrate.
   - Removing or reordering fields also means bumping the version and writing an explicit migrate.
 - **Ranges:** values are validated on load by the app's `apply_defaults`/validate step. A corrupt-but-CRC-valid value must never crash the UI, so clamp ranges.
-- **What doesn't go here:** settings hold user preferences and small device state only. Large data goes to storage. Secrets such as Wi-Fi credentials go in the product's secure store if one exists; on ESP32, use NVS in a separate namespace.
+- **What doesn't go here:** settings hold user preferences and small device state only. Large data goes to storage.
+- **Secrets** such as Wi-Fi credentials: use the product's secure store if one exists. Otherwise they may live in the settings struct, placed at its end, with `Binding::redact_from` (or the `Settings<>` constructor argument) set to their offset. `set dump` then prints those bytes as `**`, and the header line says `redacted from N`. This hides them from the console only: unencrypted NVM can still be read with a flash reader.
 - **Factory reset** (`factory_reset()`): reachable from the settings menu, with confirmation, and from the CLI.
 
 ## Acceptance
@@ -31,3 +32,4 @@ Header: `settings.h` · Event type: `EventType::Settings` · Flag: `CORE0_FEAT_S
 - [ ] 10 rapid `mark_dirty()` calls result in 1 write.
 - [ ] Bumping the version with an appended field preserves old values and defaults the new one.
 - [ ] Settings survive reset, Sleep, Deep, and firmware update (same version).
+- [x] `set dump` never prints bytes at or after `redact_from` (native test, 0.2.0).

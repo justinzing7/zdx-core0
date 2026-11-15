@@ -11,7 +11,7 @@
 #define CORE0_FEAT_AUDIO_STREAM 1
 #define CORE0_FEAT_AUDIO_IN     1
 #define CORE0_FEAT_STORAGE      0
-#define CORE0_FEAT_NET          0
+#define CORE0_FEAT_NET          1
 #define CORE0_FACTORY_COMBO     { ::core0::Key::Up, ::core0::Key::Select }
 #define CORE0_INPUT_POLL_GPIO   0
 

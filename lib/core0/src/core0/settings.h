@@ -54,6 +54,7 @@ struct Binding {
   void (*apply_defaults)(void* data);
   MigrateFn migrate;          // nullptr = defaults on version mismatch
   ms_t      commit_delay_ms;  // e.g. 3000
+  uint16_t  redact_from;      // `set dump` prints bytes from this offset as ** (a stored secret); 0 = none
 };
 
 Status bind(const Binding& b);   // call before sys::begin(); load happens in init
@@ -73,10 +74,11 @@ extern const Module kModule;
 template <typename T, uint16_t Version>
 class Settings {
  public:
-  explicit Settings(void (*defaults)(T&), settings::MigrateFn migrate = nullptr, ms_t commit_delay = 3000)
+  explicit Settings(void (*defaults)(T&), settings::MigrateFn migrate = nullptr, ms_t commit_delay = 3000,
+                    uint16_t redact_from = 0)
       : defaults_(defaults) {
     settings::Binding b = {&value, static_cast<uint16_t>(sizeof(T)), Version,
-                           &Settings::apply_defaults_thunk, migrate, commit_delay};
+                           &Settings::apply_defaults_thunk, migrate, commit_delay, redact_from};
     binding_ = b;
     instance_ = this;
   }

@@ -13,6 +13,12 @@ Headers: `log.h`, `cli.h`, `fault.h`, `version.h`, `selftest.h`
 - The CLI is a non-blocking line reader on the console. It provides the built-ins listed in `cli.h`; products add commands with `cli::add`.
 - The `ev` and `key` commands inject events, so UI flows can be driven and scripted over serial without touching buttons. This is the fastest way to iterate on screens, and it lets automated hardware-in-the-loop tests work.
 - The CLI is compiled out with `CORE0_FEAT_CLI=0`. Products may keep it in release builds behind a key combo.
+- **Secret input** (0.2.0): a command that needs a password calls `cli::read_secret(prompt, done)`.
+  - The next line echoes `*` per character, is not parsed as a command, and goes to `done(line, len)`. `len` may be 0.
+  - The line buffer is wiped after `done` returns.
+  - With no input for 60 s it prints `(cancelled)` and `done` is not called.
+  - A second request while one is pending returns `Busy`.
+  - Commands must never take a secret as an argument, because the typed line is echoed.
 
 ## Fault handling
 
@@ -53,3 +59,4 @@ Headers: `log.h`, `cli.h`, `fault.h`, `version.h`, `selftest.h`
 - [ ] After `CORE0_STABLE_RUN_MS` of normal run, the crash counter is 0.
 - [ ] `key select click` over the CLI has the same effect as pressing the button.
 - [ ] Factory mode lists every registered test and prints a parsable summary line.
+- [x] A test that returns `Skip` (not applicable on this unit) does not fail the run: `SELFTEST PASS p/t (k skipped)` when every other test passed (0.2.0, native test).

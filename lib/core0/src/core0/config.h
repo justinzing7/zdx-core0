@@ -13,7 +13,7 @@
 // Foundation version (semver of the spec + skeleton, not the product)
 // ---------------------------------------------------------------------------
 #define CORE0_VERSION_MAJOR 0
-#define CORE0_VERSION_MINOR 1
+#define CORE0_VERSION_MINOR 2
 #define CORE0_VERSION_PATCH 0
 
 // ---------------------------------------------------------------------------
@@ -111,6 +111,9 @@
 #endif
 #ifndef CORE0_MAX_SELFTESTS
 #  define CORE0_MAX_SELFTESTS 16
+#endif
+#ifndef CORE0_NET_MAX_USERS        // concurrent net::acquire() holders
+#  define CORE0_NET_MAX_USERS 2
 #endif
 #ifndef CORE0_INPUT_POLL_GPIO      // input module polls configured key pins itself
 #  define CORE0_INPUT_POLL_GPIO 1

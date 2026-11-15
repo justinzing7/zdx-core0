@@ -227,11 +227,21 @@ Status attach(RtcSource& r) {
 
 epoch_t now() { return base_epoch + time_since(hal::millis(), base_ms) / 1000; }
 
-epoch_t local_now() {
-  const epoch_t utc = now();
+epoch_t local_now() { return local_from_utc(now()); }
+
+epoch_t local_from_utc(epoch_t utc) {
   int64_t local = static_cast<int64_t>(utc) + static_cast<int32_t>(tz_min) * 60;
   if (dst_active(utc)) local += 3600;
   return local < 0 ? 0 : static_cast<epoch_t>(local);
+}
+
+epoch_t utc_from_local(epoch_t local) {
+  const int64_t standard = static_cast<int64_t>(local) - static_cast<int32_t>(tz_min) * 60;
+  const int64_t daylight = standard - 3600;
+  if (dst_rule != 0 && daylight >= 0 && dst_active(static_cast<epoch_t>(daylight)) &&
+      local_from_utc(static_cast<epoch_t>(daylight)) == local)
+    return static_cast<epoch_t>(daylight);
+  return standard < 0 ? 0 : static_cast<epoch_t>(standard);
 }
 
 bool valid() { return valid_; }

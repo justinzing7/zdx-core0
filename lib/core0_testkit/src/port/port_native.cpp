@@ -6,8 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+// NVM size: the product's board_config.h may set it to match its port (default 256 bytes).
+#ifndef CORE0_NATIVE_NVM_SIZE
+#  define CORE0_NATIVE_NVM_SIZE 256
+#endif
+
 namespace {
-const size_t kNvmSize = 256;
+const size_t kNvmSize = CORE0_NATIVE_NVM_SIZE;
 const size_t kCaptureSize = 16384;
 const size_t kInjectSize = 512;
 

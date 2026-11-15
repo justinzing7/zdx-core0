@@ -56,6 +56,11 @@ static TestResult step_raw(ms_t, const Event& e, char* msg, uint8_t n) {
   return TestResult::Running;
 }
 
+static TestResult step_skip(ms_t, const Event&, char* msg, uint8_t n) {
+  if (n) snprintf(msg, n, "not fitted");
+  return TestResult::Skip;
+}
+static const SelfTest kSkip = {"absent", false, step_skip};
 static const SelfTest kPass = {"good", false, step_pass};
 static const SelfTest kFail = {"broken", false, step_fail};
 static const SelfTest kDetail = {"detail", false, step_detail};
@@ -129,6 +134,24 @@ static void test_all_pass_summary_appears_once() {
   pump(6000);
   assert_out("SELFTEST PASS 2/2\n");
   TEST_ASSERT_EQUAL_INT(1, count_out("SELFTEST PASS"));
+}
+
+// 0.2.0: a skipped test (hardware not fitted, nothing configured) does not fail the run.
+static void test_skipped_tests_do_not_fail_the_run() {
+  selftest::register_test(kPass);
+  selftest::register_test(kSkip);
+  run();
+  pump(6000);
+  assert_out("ST absent SKIP not fitted\n");
+  assert_out("SELFTEST PASS 1/2 (1 skipped)\n");
+}
+
+static void test_a_failure_still_fails_with_skips() {
+  selftest::register_test(kSkip);
+  selftest::register_test(kFail);
+  run();
+  pump(6000);
+  assert_out("SELFTEST FAIL 0/2 (1 skipped)\n");
 }
 
 static void test_interactive_times_out_at_30s_and_is_aborted() {
@@ -435,6 +458,8 @@ int main(int, char**) {
   RUN_TEST(test_register_and_count);
   RUN_TEST(test_console_contract_and_failure_does_not_stop_later_tests);
   RUN_TEST(test_all_pass_summary_appears_once);
+  RUN_TEST(test_skipped_tests_do_not_fail_the_run);
+  RUN_TEST(test_a_failure_still_fails_with_skips);
   RUN_TEST(test_interactive_times_out_at_30s_and_is_aborted);
   RUN_TEST(test_answer_keys);
   RUN_TEST(test_press_alone_does_not_answer);

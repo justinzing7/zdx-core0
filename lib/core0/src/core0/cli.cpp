@@ -43,6 +43,7 @@ namespace {
 const size_t  kLineMax = 96;
 const uint8_t kMaxArgs = 8;
 const int     kBytesPerTick = 64;
+const ms_t    kSecretTimeoutMs = 60000;
 
 void cmd_help(uint8_t, char**);
 void cmd_ver(uint8_t, char**);
@@ -81,6 +82,14 @@ uint8_t    ncmds = 0;
 char       line[kLineMax];
 size_t     pos = 0;
 bool       last_cr = false;
+SecretFn   secret_fn = nullptr;  // set: the next line is a secret (read_secret)
+ms_t       secret_at = 0;        // last input while a secret is pending
+
+void wipe_line() {
+  volatile char* p = line;
+  for (size_t i = 0; i < kLineMax; ++i) p[i] = 0;
+  pos = 0;
+}
 
 #if CORE0_FEAT_INPUT
 const char* const kKeyNames[] = {"up", "down", "left", "right", "select", "back",
@@ -188,27 +197,41 @@ Status init() {
   return Status::Ok;
 }
 
-void tick(ms_t) {
+void tick(ms_t now) {
+  if (secret_fn && time_since(now, secret_at) >= kSecretTimeoutMs) {
+    secret_fn = nullptr;
+    wipe_line();
+    out("\r\n");
+    print("(cancelled)");
+    prompt();
+  }
   for (int n = 0; n < kBytesPerTick; ++n) {
     const int c = hal::console_read();
     if (c < 0) return;
+    if (secret_fn) secret_at = now;
     if (c == '\r' || c == '\n') {
       if (c == '\n' && last_cr) { last_cr = false; continue; }
       last_cr = c == '\r';
       out("\r\n");
-      if (pos > 0) {
+      if (secret_fn) {
+        SecretFn fn = secret_fn;
+        secret_fn = nullptr;
+        line[pos] = 0;
+        fn(line, static_cast<uint8_t>(pos));
+        wipe_line();
+      } else if (pos > 0) {
         line[pos] = 0;
         exec(line);
         pos = 0;
       }
-      prompt();
+      if (!secret_fn) prompt();  // a command that asked for a secret has printed its own prompt
     } else if (c == 0x08 || c == 0x7F) {
       last_cr = false;
       if (pos > 0) { --pos; out("\b \b"); }
     } else if (c >= 0x20 && c < 0x7F && pos < kLineMax - 1) {
       last_cr = false;
       line[pos++] = static_cast<char>(c);
-      const char ch[2] = {static_cast<char>(c), 0};
+      const char ch[2] = {secret_fn ? '*' : static_cast<char>(c), 0};
       out(ch);
     }
   }
@@ -218,8 +241,21 @@ ms_t next_deadline(ms_t now) { return now + 50; }  // poll console at 20 Hz whil
 
 }  // namespace
 
+Status read_secret(const char* prompt_text, SecretFn done) {
+  if (!done) return Status::Invalid;
+  if (secret_fn) return Status::Busy;
+  secret_fn = done;
+  secret_at = hal::millis();
+  if (prompt_text) out(prompt_text);
+  return Status::Ok;
+}
+
 Status add(const CliCommand& cmd) {
-  if (ncmds >= CORE0_MAX_CLI_COMMANDS) return Status::NoSpace;
+  if (ncmds >= CORE0_MAX_CLI_COMMANDS) {
+    C0_LOGE("cli", "table full (%u): '%s' not added, raise CORE0_MAX_CLI_COMMANDS", static_cast<unsigned>(CORE0_MAX_CLI_COMMANDS),
+            cmd.name);
+    return Status::NoSpace;
+  }
   cmds[ncmds++] = cmd;
   return Status::Ok;
 }
@@ -266,7 +302,10 @@ void reset_cli() {
   cli::ncmds = 0;
   cli::pos = 0;
   cli::last_cr = false;
+  cli::secret_fn = nullptr;
+  cli::secret_at = 0;
 }
+const char* cli_line() { return cli::line; }
 }  // namespace test
 #endif
 
