@@ -2,6 +2,9 @@
 // locks, vetoes, suspend/resume order, request(), live policy change, `pwr` CLI.
 #include <unity.h>
 #include "test_helpers.h"
+#if CORE0_FEAT_NET
+#  include "mock_net.h"
+#endif
 using namespace core0;
 
 static char g_sus[32], g_res[32];
@@ -194,6 +197,46 @@ static void test_lock_holds_idle_after_rtc_wake() {
   ASSERT_ST(Sleep);
 }
 
+#if CORE0_FEAT_NET
+// 0.2.0: a timer wake that uses the radio (a daily network time sync) stays in Idle, screen off, while
+// the radio is held, and goes back to Sleep once it is released and off. Never through Active.
+static MockNet      g_bg_net;
+static net::NetUser g_bg_user = -1;
+static void on_timer_takes_radio(TimerId, void*) { g_bg_user = net::acquire("bg", 20000); }
+
+static void test_radio_holds_idle_after_rtc_wake_then_sleeps_again() {
+  reset_all();
+  g_bg_net.reset();
+  g_bg_net.off_on_disconnect = false;  // the radio takes a moment to stop
+  net::attach(g_bg_net);
+  sys::register_module(&power::kModule);
+  sys::register_module(&net::kModule);
+  power::set_policy(PowerPolicy{0, 0, 0, 0, hal::kWakeButton | hal::kWakeRtc});
+  rec_attach(EventType::Power);
+  port_native::set_wake_bits(hal::kWakeRtc);
+  sys::begin();
+  g_bg_user = -1;
+  timers::start(5000, TimerMode::OneShot, on_timer_takes_radio);
+  power::request(PowerState::Sleep);
+  pump(5200);
+  TEST_ASSERT_TRUE(g_bg_user >= 0);
+  ASSERT_ST(Idle);
+  g_bg_net.st = NetState::Up;
+  pump(300);
+  ASSERT_ST(Idle);  // held: vetoed
+  net::release(g_bg_user);
+  pump(300);
+  ASSERT_ST(Idle);  // released but the radio is not off yet: still vetoed
+  g_bg_net.st = NetState::Off;
+  pump(300);
+  ASSERT_ST(Sleep);
+  for (int i = 0; i < g_rec.n; ++i) {
+    if (g_rec.ev[i].type == EventType::Power && g_rec.ev[i].code == U(PowerCode::StateChanged))
+      TEST_ASSERT_TRUE(g_rec.ev[i].arg != U(PowerState::Active));
+  }
+}
+#endif
+
 static void test_request_goes_immediately_subject_to_locks() {
   PowerLock l = power::lock(PowerState::Idle, "audio");
   TEST_ASSERT_EQUAL_INT(static_cast<int>(Status::Busy), static_cast<int>(power::request(PowerState::Sleep)));
@@ -268,6 +311,9 @@ int main(int, char**) {
   RUN_TEST(test_rtc_wake_then_request_active_goes_active);
   RUN_TEST(test_rtc_bits_with_no_timer_armed_are_ignored);
   RUN_TEST(test_lock_holds_idle_after_rtc_wake);
+#if CORE0_FEAT_NET
+  RUN_TEST(test_radio_holds_idle_after_rtc_wake_then_sleeps_again);
+#endif
   RUN_TEST(test_request_goes_immediately_subject_to_locks);
   RUN_TEST(test_request_vetoed);
   RUN_TEST(test_set_policy_applies_live);

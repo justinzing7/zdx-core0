@@ -18,7 +18,7 @@ core0::ms_t last_sleep_request();   // max_ms of the most recent hal::sleep call
 uint32_t    sleep_calls(core0::hal::SleepDepth depth);
 void        set_wake_bits(uint32_t bits);  // returned by the next Light sleep
 
-// NVM (256 bytes)
+// NVM (CORE0_NATIVE_NVM_SIZE bytes, default 256)
 void     nvm_fail_after(long n);    // next writes cut power after n bytes total (-1 = off)
 bool     nvm_power_cut();           // true once the injected cut happened (further writes dropped)
 void     nvm_wipe();                // all 0xFF

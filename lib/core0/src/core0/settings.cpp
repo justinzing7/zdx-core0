@@ -38,7 +38,7 @@ namespace {
 
 const uint16_t kMagic = 0x5A43;  // 'ZC'
 
-Binding  bind_ = {nullptr, 0, 0, nullptr, nullptr, 3000};
+Binding  bind_ = {nullptr, 0, 0, nullptr, nullptr, 3000, 0};
 bool     bound = false;
 bool     dirty_ = false;
 int8_t   active_slot = -1;  // slot holding the current data, -1 = none valid
@@ -127,18 +127,26 @@ void cmd_set(uint8_t argc, char** argv) {
     cli::print("factory reset: defaults applied, commit on next pass");
     return;
   }
-  cli::print("version %u seq %lu size %u slot %c%s", static_cast<unsigned>(bind_.version),
+  const bool redact = bind_.redact_from > 0 && bind_.redact_from < bind_.size;
+  char tail[24];
+  tail[0] = 0;
+  if (redact) snprintf(tail, sizeof(tail), "  redacted from %u", static_cast<unsigned>(bind_.redact_from));
+  cli::print("version %u seq %lu size %u slot %c%s%s", static_cast<unsigned>(bind_.version),
              static_cast<unsigned long>(seq), static_cast<unsigned>(bind_.size),
-             active_slot < 0 ? '-' : (active_slot == 0 ? 'A' : 'B'), dirty_ ? " (dirty)" : "");
+             active_slot < 0 ? '-' : (active_slot == 0 ? 'A' : 'B'), dirty_ ? " (dirty)" : "", tail);
   const uint8_t* p = static_cast<const uint8_t*>(bind_.data);
   char line[3 * 16 + 1];
   for (uint16_t i = 0; p && i < bind_.size; i = static_cast<uint16_t>(i + 16)) {
     size_t n = 0;
-    for (uint16_t j = i; j < bind_.size && j < i + 16; ++j) n += snprintf(line + n, sizeof(line) - n, "%02X ", p[j]);
+    for (uint16_t j = i; j < bind_.size && j < i + 16; ++j) {
+      if (redact && j >= bind_.redact_from) n += snprintf(line + n, sizeof(line) - n, "** ");
+      else n += snprintf(line + n, sizeof(line) - n, "%02X ", p[j]);
+    }
     cli::print("  %s", line);
   }
 }
 const CliCommand kCmdSet = {"set", "set [dump|reset]: settings blob", cmd_set};
+bool             cli_added = false;
 #endif
 
 #if CORE0_FEAT_SELFTEST
@@ -201,7 +209,6 @@ Status init() {
     return Status::NoSpace;
   }
 #if CORE0_FEAT_CLI
-  static bool cli_added = false;
   if (!cli_added) cli_added = ok(cli::add(kCmdSet));
 #endif
 #if CORE0_FEAT_SELFTEST
@@ -306,6 +313,9 @@ void reset_settings() {
   settings::active_slot = -1;
   settings::seq = 0;
   settings::commit_timer = kNoTimer;
+#if CORE0_FEAT_CLI
+  settings::cli_added = false;
+#endif
 }
 }  // namespace test
 #endif

@@ -23,6 +23,12 @@ static void defaults2(S2& s) { memset(&s, 0, sizeof(s)); s.a = 1; s.l = 12; s.ad
 static Settings<S1, 1> g1(defaults1);
 static Settings<S2, 2> g2(defaults2);
 
+struct S3 {
+  int16_t f[12];  // 24 bytes; bytes 12.. are the secret part
+};
+static void defaults3(S3& s) { memset(&s, 0, sizeof(s)); }
+static Settings<S3, 1> g3(defaults3, nullptr, 3000, 12);
+
 static void boot1() {
   test::reset_settings();
   g1.bind();
@@ -185,6 +191,33 @@ static void test_on_suspend_flushes_dirty() {
   TEST_ASSERT_EQUAL_UINT32(c0 + 1, port_native::nvm_commit_count());
 }
 
+static void test_dump_redacts_from_the_offset() {
+  test::reset_settings();
+  g3.bind();
+  settings::kModule.init();
+  for (int i = 0; i < 6; ++i) g3->f[i] = static_cast<int16_t>(i + 1);
+  for (int i = 6; i < 12; ++i) g3->f[i] = static_cast<int16_t>(0xA5A5);
+  port_native::console_clear();
+  char cmd[] = "set";
+  cli::exec(cmd);
+  const char* out = port_native::console_capture();
+  TEST_ASSERT_NOT_NULL(strstr(out, "redacted from 12"));
+  TEST_ASSERT_NULL(strstr(out, "A5"));
+  TEST_ASSERT_NOT_NULL(strstr(out, "01 00 02 00 03 00 04 00 05 00 06 00 ** ** ** ** "));
+}
+
+static void test_dump_without_redaction_is_unchanged() {
+  boot1();
+  fill(*g1, 0);
+  g1->l = static_cast<int16_t>(0xA5A5);
+  port_native::console_clear();
+  char cmd[] = "set";
+  cli::exec(cmd);
+  const char* out = port_native::console_capture();
+  TEST_ASSERT_NULL(strstr(out, "redacted"));
+  TEST_ASSERT_NOT_NULL(strstr(out, "A5 A5"));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_empty_nvm_defaults);
@@ -196,5 +229,7 @@ int main() {
   RUN_TEST(test_factory_reset_commits_next_pass);
   RUN_TEST(test_save_now_commits_next_pass);
   RUN_TEST(test_on_suspend_flushes_dirty);
+  RUN_TEST(test_dump_redacts_from_the_offset);
+  RUN_TEST(test_dump_without_redaction_is_unchanged);
   return UNITY_END();
 }

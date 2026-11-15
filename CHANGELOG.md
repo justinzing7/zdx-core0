@@ -3,6 +3,42 @@
 Versions follow `CORE0_VERSION_*` in `lib/core0/src/core0/config.h`. While the major version is 0, a minor release may
 change an API, and its notes say what a product must change.
 
+## 0.2.0 (unreleased)
+
+Built for the pilot product's feature 002 (clock face and Wi-Fi time sync). The full record is in that repo's
+`specs/002-clock-face/upstream-notes.md`.
+
+### Added
+- The net service, `lib/core0/src/core0/net.cpp` (`CORE0_FEAT_NET`):
+  - reference-counted radio users with per-user connect timeouts;
+  - `StateChanged` events, a Sleep veto while held, and the CLI `net` view.
+- `net.h`:
+  - `NetDriver::describe()` (optional, default empty);
+  - `net::users()`, `net::state_name()`, `net::kAllUsers`.
+- `config.h`: `CORE0_NET_MAX_USERS` (default 2).
+- `cli.h`: `cli::read_secret()`, a console line echoed as `*` and wiped after use.
+- `settings.h`: `Binding::redact_from` and the matching optional `Settings<>` constructor argument. `set dump` prints
+  bytes from that offset as `**`.
+- `clock.h`: `local_from_utc()` and `utc_from_local()`.
+- Test kit:
+  - `mock_net.h`;
+  - `CORE0_NATIVE_NVM_SIZE` for the native port (default 256);
+  - `reset_net()` in `reset_all()` when `CORE0_FEAT_NET` is on.
+- Tests: the `test_core0_net` suite, plus new cases in the cli, settings_slots and clock_math suites.
+
+### What a product must do
+- Nothing, unless it wants the new features. A `Binding` written with brace-init gets `redact_from = 0`, which
+  changes nothing.
+- To use the radio: set `CORE0_FEAT_NET 1` in `board_config.h`, implement a `NetDriver`, call `net::attach()`, and
+  register `net::kModule`. The driver's `state()` must be cheap, and it must reach `Off` after `disconnect()`.
+
+### Behaviour to know
+- The CLI no longer prints its `> ` prompt after a command that has started `read_secret()`.
+- `cli::add()` logs `E cli: table full (N): '<name>' not added` when `CORE0_MAX_CLI_COMMANDS` is reached.
+- Self-test: a `Skip` result (hardware not fitted, nothing configured) no longer fails the run. The summary reads
+  `SELFTEST PASS 1/2 (1 skipped)`. Lines with no skips are unchanged.
+- The settings spec now allows secrets in the settings struct when it uses `redact_from`.
+
 ## 0.1.0 (2026-11-14)
 
 First release with working services. Built and validated in the pilot product, zingcore_remtrak feature 001 (FireBeetle

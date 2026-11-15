@@ -34,9 +34,14 @@ In 0.1.0, `set_wake_at` only stores the time: it does not limit the sleep yet. I
 
 The time zone is a fixed offset in minutes, plus an optional EU or US DST rule, stored in settings. Full tz database support is out of scope.
 
+`local_from_utc()` and `utc_from_local()` (0.2.0) convert with the current offset and rule. A time-setting screen edits local time and stores `utc_from_local()` of it.
+- A local time that occurs twice at the DST fall-back resolves to the first occurrence, which is DST.
+- A local time in the spring-forward gap is taken as standard time, so it shows an hour later.
+
 ## Acceptance
 
 - [ ] `to_datetime(from_datetime(x)) == x` across 2000–2135, including leap days (native test).
 - [ ] A `Minute` event fires within 1 s of the boundary while awake, and on the correct minute after waking from Sleep.
 - [ ] After 24 h in Sleep, drift is within the RTC source's spec (record it in the plan).
 - [ ] A cold boot with a dead RTC shows `--:--` and posts `Invalid`.
+- [x] `local_from_utc(utc_from_local(L)) == L` for every hour of a year under the EU and US rules, except the gap hour; overlap and gap cases follow the rule above (native test, 0.2.0).

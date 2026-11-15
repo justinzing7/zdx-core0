@@ -27,6 +27,7 @@ void reset_feedback();
 void reset_battery();
 void reset_selftest();
 void reset_clock();
+void reset_net();
 }  // namespace test
 }  // namespace core0
 
@@ -49,6 +50,9 @@ inline void reset_all() {
   core0::test::reset_battery();
   core0::test::reset_selftest();
   core0::test::reset_clock();
+#if CORE0_FEAT_NET
+  core0::test::reset_net();
+#endif
 }
 
 // Run the loop for `ms` milliseconds of mock time, one pass per millisecond.

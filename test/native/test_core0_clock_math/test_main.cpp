@@ -316,6 +316,57 @@ static void test_cli_time_shows_dashes_when_invalid() {
   TEST_ASSERT_NOT_NULL(strstr(port_native::console_capture(), "--:--"));
 }
 
+// Every hour of 2026 round-trips except the one in the spring-forward gap.
+static void check_round_trip_2026(int16_t tz, uint8_t rule, epoch_t gap_local) {
+  clock::set_tz_offset_min(tz);
+  clock::set_eu_us_dst(rule);
+  int failures = 0;
+  for (epoch_t l = at(2026, 1, 1); l < at(2027, 1, 1); l += 3600) {
+    const epoch_t back = clock::local_from_utc(clock::utc_from_local(l));
+    if (l == gap_local) {
+      TEST_ASSERT_EQUAL_UINT32(l + 3600, back);  // standard time, shown an hour later
+    } else if (back != l) {
+      ++failures;
+    }
+  }
+  TEST_ASSERT_EQUAL_INT(0, failures);
+}
+
+static void test_utc_from_local_round_trips_us() { check_round_trip_2026(-360, 2, at(2026, 3, 8, 2)); }
+static void test_utc_from_local_round_trips_eu() { check_round_trip_2026(60, 1, at(2026, 3, 29, 2)); }
+
+static void test_utc_from_local_overlap_picks_first_occurrence() {
+  clock::set_tz_offset_min(-360);
+  clock::set_eu_us_dst(2);
+  const epoch_t l = at(2026, 11, 1, 1, 30);
+  const epoch_t u = clock::utc_from_local(l);
+  TEST_ASSERT_EQUAL_UINT32(l + 6 * 3600 - 3600, u);         // CDT (UTC-5)
+  TEST_ASSERT_EQUAL_UINT32(l, clock::local_from_utc(u));
+  TEST_ASSERT_EQUAL_UINT32(l, clock::local_from_utc(u + 3600));  // the second occurrence (CST)
+}
+
+static void test_utc_from_local_gap_is_standard_time() {
+  clock::set_tz_offset_min(-360);
+  clock::set_eu_us_dst(2);
+  const epoch_t l = at(2026, 3, 8, 2, 30);
+  TEST_ASSERT_EQUAL_UINT32(l + 6 * 3600, clock::utc_from_local(l));
+}
+
+static void test_utc_from_local_without_dst() {
+  clock::set_tz_offset_min(90);
+  clock::set_eu_us_dst(0);
+  const epoch_t l = at(2026, 7, 1, 12);
+  TEST_ASSERT_EQUAL_UINT32(l - 5400, clock::utc_from_local(l));
+}
+
+static void test_local_now_matches_local_from_utc() {
+  clock::set_tz_offset_min(60);
+  clock::set_eu_us_dst(1);
+  clock::set(at(2026, 7, 1, 10), ClockSource::Host);
+  TEST_ASSERT_EQUAL_UINT32(clock::local_from_utc(clock::now()), clock::local_now());
+  TEST_ASSERT_EQUAL_UINT32(at(2026, 7, 1, 12), clock::local_now());
+}
+
 int main(int, char**) {
   UNITY_BEGIN();
   RUN_TEST(test_round_trip_every_day_2000_to_2135);
@@ -346,5 +397,11 @@ int main(int, char**) {
   RUN_TEST(test_no_dst_rule_means_no_shift);
   RUN_TEST(test_cli_time_shows_and_sets);
   RUN_TEST(test_cli_time_shows_dashes_when_invalid);
+  RUN_TEST(test_utc_from_local_round_trips_us);
+  RUN_TEST(test_utc_from_local_round_trips_eu);
+  RUN_TEST(test_utc_from_local_overlap_picks_first_occurrence);
+  RUN_TEST(test_utc_from_local_gap_is_standard_time);
+  RUN_TEST(test_utc_from_local_without_dst);
+  RUN_TEST(test_local_now_matches_local_from_utc);
   return UNITY_END();
 }

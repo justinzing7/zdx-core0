@@ -47,7 +47,12 @@ namespace clock {
 
 Status   attach(RtcSource& rtc);
 epoch_t  now();                 // UTC
-epoch_t  local_now();
+epoch_t  local_now();           // == local_from_utc(now())
+// Conversions with the current tz offset and DST rule.
+epoch_t  local_from_utc(epoch_t utc);
+// Inverse: a local time that occurs twice (DST fall-back) gives the first, DST occurrence; a local
+// time that never occurs (spring-forward gap) is taken as standard time, so it shows an hour later.
+epoch_t  utc_from_local(epoch_t local);
 bool     valid();
 Status   set(epoch_t utc, ClockSource src);
 ClockSource source();
