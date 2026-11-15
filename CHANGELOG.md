@@ -3,7 +3,7 @@
 Versions follow `CORE0_VERSION_*` in `lib/core0/src/core0/config.h`. While the major version is 0, a minor release may
 change an API, and its notes say what a product must change.
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-15)
 
 Built for the pilot product's feature 002 (clock face and Wi-Fi time sync). The full record is in that repo's
 `specs/002-clock-face/upstream-notes.md`.

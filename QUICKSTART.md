@@ -26,8 +26,8 @@ Add this repo as a submodule, pinned to a release:
 
 ```bash
 git submodule add https://github.com/justinzing7/zdx-core0 zdx-core0
-git -C zdx-core0 checkout v0.1.0
-git add zdx-core0 && git commit -m "Add ZDX CORE-0 0.1.0"
+git -C zdx-core0 checkout v0.2.0
+git add zdx-core0 && git commit -m "Add ZDX CORE-0 0.2.0"
 ```
 
 A fresh clone of the product then needs `git clone --recurse-submodules`, or `git submodule update --init` afterwards.
@@ -73,7 +73,7 @@ Open the Claude Code panel in VS Code and run these one at a time, reviewing the
 
 ```text
 /speckit-constitution Project: <product name>. MCU/board: <e.g. FireBeetle 2 ESP32-E>.
-  Profile: RTOS. Power: 1S LiPo. Owner: <you>. Foundation version 0.1.0.
+  Profile: RTOS. Power: 1S LiPo. Owner: <you>. Foundation version 0.2.0.
 
 /speckit-specify <what the feature does for the user — no tech details>
 
@@ -89,7 +89,7 @@ Optional quality gates: `/speckit-clarify` before plan, `/speckit-analyze` after
 
 ## 5. First feature for any new product: foundation bring-up
 
-The services are implemented (0.1.0), so a new product's first feature brings them up on its own board: the drivers
+The services are implemented (0.2.0), so a new product's first feature brings them up on its own board: the drivers
 and the MCU port, plus the product's screens and settings. For example:
 
 ```text

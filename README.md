@@ -38,10 +38,10 @@ zdx-core0/
 
 | Part | State |
 |---|---|
-| Release | **0.1.0** (see `CHANGELOG.md`) |
-| Spec | 0.1.0, matching the code |
+| Release | **0.2.0** (see `CHANGELOG.md`) |
+| Spec | 0.2.0, matching the code |
 | Headers | Complete interfaces. Compile clean as C++11 and C++17 with `-Wall -Wextra -pedantic` |
-| Service implementations (`.cpp`) | All 18, validated on the pilot board (ESP32, RTOS profile). Other MCUs need their port |
+| Service implementations (`.cpp`) | All 19, validated on the pilot board (ESP32, RTOS profile). Other MCUs need their port |
 | Tests | 192 host tests in 21 suites: `pio test -e native_core0` |
 | Spec Kit preset | Verified to install with `specify` 1.1.x. Templates compose correctly |
 
